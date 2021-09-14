@@ -91,7 +91,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Getting Started:</span></p>
+              <p class="caption" role="heading"><span class="caption-text">Getting Started:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quick_start.html">Quick Start</a></li>
@@ -119,13 +119,13 @@
 <li class="toctree-l1"><a class="reference internal" href="../usage.html">Installation And Usage</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Reference:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Reference:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../reference/core.html">Core Library</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../reference/systems.html">Systems</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../reference/random.html">Random</a></li>
 </ul>
-<p class="caption"><span class="caption-text">Appendix:</span></p>
+<p class="caption" role="heading"><span class="caption-text">Appendix:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../glossary.html">Glossary</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../genindex.html">Index</a></li>
@@ -253,7 +253,7 @@ This is why the code below using
 <p>A quantity point kind is the analogous of a quantity point for quantity kinds
 (see the <a class="reference internal" href="quantity_points.html#quantity-points"><span class="std std-ref">Quantity Points</span></a> chapter).</p>
 <p>They are represented in the library with a <a class="reference internal" href="../reference/core/types/quantity_point_kind.html#_CPPv4I_9PointKind_6UnitOfIN2PK9dimensionEE_14RepresentationEN5units19quantity_point_kindE" title="units::quantity_point_kind"><code class="xref cpp cpp-any docutils literal notranslate"><span class="pre">quantity_point_kind</span></code></a> class template.</p>
-<p>First, we need a <a class="reference internal" href="../reference/core/types/kinds.html#_CPPv4I0_4KindEN5units10point_kindE" title="units::point_kind"><code class="xref cpp cpp-any docutils literal notranslate"><span class="pre">point_kind</span></code></a> for a <a class="reference internal" href="../reference/core/types/kinds.html#_CPPv4I0_9DimensionEN5units4kindE" title="units::kind"><code class="xref cpp cpp-any docutils literal notranslate"><span class="pre">kind</span></code></a>:</p>
+<p>First, we need a <a class="reference internal" href="../reference/core/types/kinds.html#_CPPv4I0_4Kind_11PointOriginEN5units10point_kindE" title="units::point_kind"><code class="xref cpp cpp-any docutils literal notranslate"><span class="pre">point_kind</span></code></a> for a <a class="reference internal" href="../reference/core/types/kinds.html#_CPPv4I0_9DimensionEN5units4kindE" title="units::kind"><code class="xref cpp cpp-any docutils literal notranslate"><span class="pre">kind</span></code></a>:</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span> <span class="nl">width</span> <span class="p">:</span> <span class="n">kind</span><span class="o">&lt;</span><span class="n">width</span><span class="p">,</span> <span class="n">si</span><span class="o">::</span><span class="n">dim_length</span><span class="o">&gt;</span> <span class="p">{};</span>
 <span class="k">struct</span> <span class="nl">x_coordinate</span> <span class="p">:</span> <span class="n">point_kind</span><span class="o">&lt;</span><span class="n">x_coordinate</span><span class="p">,</span> <span class="n">width</span><span class="o">&gt;</span> <span class="p">{};</span>
 </pre></div>
@@ -265,7 +265,7 @@ This is why the code below using
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p>Please refer to <span class="xref std std-ref">examples/glide_computer:glide_computer</span> example for more
+<p>Please refer to <a class="reference internal" href="../examples/basics/glide_computer.html#glide-computer"><span class="std std-ref">glide_computer</span></a> example for more
 information on the quantity kinds usage.</p>
 </div>
 </section>
