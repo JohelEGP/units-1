@@ -39,9 +39,9 @@ import std;
 
 export namespace mp_units {
 
-enum class @\libglobal{text_encoding}@ : std::int8_t { @\libmember{utf8}{text_encoding}@, @\libmember{portable}{text_encoding}@, @\libmember{default_encoding}{text_encoding}@ = utf8 };
+enum class @\libglobal{text_encoding}@ : std::int8_t { utf8, portable, default_encoding = utf8 };
 
-enum class @\libglobal{quantity_character}@ { @\libmember{scalar}{quantity_character}@, @\libmember{complex}{quantity_character}@, @\libmember{vector}{quantity_character}@, @\libmember{tensor}{quantity_character}@ };
+enum class @\libglobal{quantity_character}@ { scalar, complex, vector, tensor };
 
 // \ref{qty.helpers}, helpers
 
@@ -86,6 +86,8 @@ template<std::intmax_t Num, std::intmax_t Den = 1, @\libconcept{Dimension}@ D>
 consteval @\libconcept{Dimension}@ auto pow(D d);
 consteval @\libconcept{Dimension}@ auto @\liboverload{sqrt}{\cname{Dimension}}@(@\libconcept{Dimension}@ auto d) { return pow<1, 2>(d); }
 consteval @\libconcept{Dimension}@ auto @\liboverload{cbrt}{\cname{Dimension}}@(@\libconcept{Dimension}@ auto d) { return pow<1, 3>(d); }
+
+// \ref{qty.dim.sym.fmt}, symbol formatting
 
 struct @\libglobal{dimension_symbol_formatting}@ {
   text_encoding encoding = text_encoding::default_encoding;
@@ -200,6 +202,14 @@ inline constexpr struct @\libglobal{pi}@ final :
 
 // \ref{qty.unit}, unit
 
+// \ref{qty.unit.traits}, traits
+
+template<@\libconcept{Unit}@ auto U>
+constexpr bool space_before_unit_symbol = true;
+
+template<>
+inline constexpr bool @\libspec{space_before_unit_symbol}{one}@<one> = false;
+
 // \ref{qty.unit.concepts}, concepts
 
 template<typename T>
@@ -264,6 +274,64 @@ struct common_unit;
 
 template<@\exposconceptnc{DerivedUnitExpr}@... Expr>
 struct derived_unit;
+
+struct one;
+inline constexpr one one = @\seebelownc@;
+
+consteval @\libconcept{Unit}@ auto @\liboverload{inverse}{\cname{Unit}}@(@\libconcept{Unit}@ auto u) { return one / u; }
+
+template<std::intmax_t Num, std::intmax_t Den = 1, @\libconcept{Unit}@ U>
+  requires @\seebelownc@
+consteval @\libconcept{Unit}@ auto pow(U u);
+
+consteval @\libconcept{Unit}@ auto @\liboverload{sqrt}{\cname{Unit}}@(@\libconcept{Unit}@ auto u) { return pow<1, 2>(u); }
+consteval @\libconcept{Unit}@ auto @\liboverload{cbrt}{\cname{Unit}}@(@\libconcept{Unit}@ auto u) { return pow<1, 3>(u); }
+consteval @\libconcept{Unit}@ auto @\libglobal{square}@(@\libconcept{Unit}@ auto u) { return pow<2>(u); }
+consteval @\libconcept{Unit}@ auto @\libglobal{cubic}@(@\libconcept{Unit}@ auto u) { return pow<3>(u); }
+
+inline constexpr struct @\libglobal{percent}@ final : named_unit<"%", mag_ratio<1, 100> * one> {
+} @\libglobal{percent}@;
+
+inline constexpr struct @\libglobal{per_mille}@ final :
+    named_unit<symbol_text{u8"\u2030", "%o"}, mag_ratio<1, 1000> * one> {
+} @\libglobal{per_mille}@;
+
+inline constexpr struct @\libglobal{parts_per_million}@ final :
+    named_unit<"ppm", mag_ratio<1, 1'000'000> * one> {
+} @\libglobal{parts_per_million}@;
+
+inline constexpr auto @\libglobal{ppm}@ = parts_per_million;
+
+consteval @\libconcept{Unit}@ auto get_common_unit(@\libconcept{Unit}@ auto... us)
+  requires @\seebelownc@;
+
+// \ref{qty.unit.sym.fmt}, symbol formatting
+
+enum class @\libglobal{unit_symbol_solidus}@ : std::int8_t {
+  one_denominator,
+  always,
+  never,
+  default_denominator = one_denominator
+};
+
+enum class @\libglobal{unit_symbol_separator}@ : std::int8_t {
+  space,
+  half_high_dot,
+  default_separator = space
+};
+
+struct @\libglobal{unit_symbol_formatting}@ {
+  text_encoding encoding = text_encoding::default_encoding;
+  unit_symbol_solidus solidus = unit_symbol_solidus::default_denominator;
+  unit_symbol_separator separator = unit_symbol_separator::default_separator;
+};
+
+template<typename CharT = char, std::@\stdconcept{output_iterator}@<CharT> Out, @\libconcept{Unit}@ U>
+constexpr Out unit_symbol_to(Out out, U u,
+                             const unit_symbol_formatting& fmt = unit_symbol_formatting{});
+
+template<unit_symbol_formatting fmt = {}, typename CharT = char, @\libconcept{Unit}@ U>
+constexpr auto unit_symbol(U);
 
 // \ref{qty.ref}, reference
 
@@ -769,7 +837,7 @@ inline constexpr struct dim_length final : base_dimension<"L"> {} dim_length;
 namespace mp_units {
 
 template<@\exposconceptnc{DerivedDimensionExpr}@... Expr>
-struct @\exposidnc{derived-dimension-impl}@ : @\exposidnc{expr-fractions}@<dimension_one, Expr...> {};
+struct @\exposidnc{derived-dimension-impl}@ : @\exposidnc{expr-fractions}@<struct dimension_one, Expr...> {};
 
 template<@\exposconceptnc{DerivedDimensionExpr}@... Expr>
 struct @\libglobal{derived_dimension}@ final : @\exposidnc{dimension-interface}@, @\exposidnc{derived-dimension-impl}@<Expr...> {};
@@ -811,6 +879,8 @@ consteval @\libconcept{Dimension}@ auto @\liboverload{pow}{\cname{Dimension}}@(D
 \returns
 \tcode{\exposidnc{expr-pow}<Num, Den, derived_dimension, struct dimension_one>(d)}.
 \end{itemdescr}
+
+\rSec2[qty.dim.sym.fmt]{Symbol formatting}
 
 \begin{itemdecl}
 template<typename CharT = char, std::@\stdconcept{output_iterator}@<CharT> Out, @\libconcept{Dimension}@ D>
@@ -1022,7 +1092,7 @@ concept @\defexposconceptnc{quantity-spec-args}@ =
 
 template<@\exposconceptnc{BaseDimension}@ auto Dim, auto... Args>
   requires @\exposconceptnc{quantity-spec-args}@<1, Args...>
-struct @\libspec{quantity_spec}{\ecname{BaseDimension}}@<Dim, Args...> : @\exposidnc{quantity-spec-interface}@ {
+struct @\libglobal{quantity_spec}@<Dim, Args...> : @\exposidnc{quantity-spec-interface}@ {
   using @\exposidnc{base-type}@ = quantity_spec;
   static constexpr @\exposconceptnc{BaseDimension}@ auto dimension = Dim;
   static constexpr quantity_character character =
@@ -1031,7 +1101,7 @@ struct @\libspec{quantity_spec}{\ecname{BaseDimension}}@<Dim, Args...> : @\expos
 
 template<@\exposconceptnc{DerivedQuantitySpec}@ auto Eq, auto... Args>
   requires @\exposconceptnc{quantity-spec-args}@<1, Args...>
-struct @\libspec{quantity_spec}{\ecname{DerivedQuantitySpec}}@<Eq, Args...> : @\exposidnc{quantity-spec-interface}@ {
+struct quantity_spec<Eq, Args...> : @\exposidnc{quantity-spec-interface}@ {
   using @\exposidnc{base-type}@ = quantity_spec;
   static constexpr auto @\exposidnc{equation}@ = Eq;
   static constexpr @\libconcept{Dimension}@ auto dimension = Eq.dimension;
@@ -1041,7 +1111,7 @@ struct @\libspec{quantity_spec}{\ecname{DerivedQuantitySpec}}@<Eq, Args...> : @\
 
 template<@\exposconceptnc{NamedQuantitySpec}@ auto QS, auto... Args>
   requires @\exposconceptnc{quantity-spec-args}@<2, Args...>
-struct @\libspec{quantity_spec}{\ecname{NamedQuantitySpec}}@<QS, Args...> : @\exposidnc{quantity-spec-interface}@ {
+struct quantity_spec<QS, Args...> : @\exposidnc{quantity-spec-interface}@ {
   using @\exposidnc{base-type}@ = quantity_spec;
   static constexpr auto @\exposidnc{parent}@ = QS;
   static constexpr auto @\exposidnc{equation}@ = @\exposidnc{parent}@.@\exposidnc{equation}@;  // \expos, present only
@@ -1053,7 +1123,7 @@ struct @\libspec{quantity_spec}{\ecname{NamedQuantitySpec}}@<QS, Args...> : @\ex
 
 template<@\exposconceptnc{NamedQuantitySpec}@ auto QS, @\exposconceptnc{DerivedQuantitySpec}@ auto Eq, auto... Args>
   requires @\exposconceptnc{quantity-spec-args}@<2, Args...> && @\exposconceptnc{QuantitySpecExplicitlyConvertibleTo}@<Eq, QS>
-struct @\libspec{quantity_spec}{<\ecname{NamedQuantitySpec}, \ecname{DerivedQuantitySpec}>}@<QS, Eq, Args...> : @\exposidnc{quantity-spec-interface}@ {
+struct quantity_spec<QS, Eq, Args...> : @\exposidnc{quantity-spec-interface}@ {
   using @\exposidnc{base-type}@ = quantity_spec;
   static constexpr auto @\exposidnc{parent}@ = QS;
   static constexpr auto @\exposidnc{equation}@ = Eq;
@@ -1129,9 +1199,9 @@ namespace mp_units {
 template<@\exposconceptnc{DerivedQuantitySpecExpr}@... Expr>
 struct @\exposidnc{derived-quantity-spec-impl}@ :
     @\exposidnc{quantity-spec-interface}@,
-    @\exposidnc{expr-fractions}@<dimensionless, Expr...> {
+    @\exposidnc{expr-fractions}@<struct dimensionless, Expr...> {
   using @\exposidnc{base-type}@ = @\exposidnc{derived-quantity-spec-impl}@;
-  using @\exposidnc{base}@ = @\exposidnc{expr-fractions}@<dimensionless, Expr...>;
+  using @\exposidnc{base}@ = @\exposidnc{expr-fractions}@<struct dimensionless, Expr...>;
 
   static constexpr @\libconcept{Dimension}@ auto dimension =
     @\exposidnc{expr-map}@<@\exposidnc{to-dimension}@, derived_dimension, struct dimension_one>(@\exposidnc{base}@{});
@@ -1488,6 +1558,8 @@ struct @\libglobal{magnitude}@ {
   {
     return ^magnitude == ^M2;
   }
+
+  friend consteval bool @\exposidnc{is-positive-integral-power}@(magnitude);
 };
 
 }
@@ -1528,6 +1600,16 @@ Otherwise, returns an unspecified model of \libconcept{Magnitude} equal to $\tco
 \end{itemize}
 \end{itemdescr}
 
+\begin{itemdecl}
+friend consteval bool @\exposidnc{is-positive-integral-power}@(magnitude);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+TBD.
+\end{itemdescr}
+
 \begin{codeblock}
 template<@\exposconceptnc{MagArg}@ auto V>
   requires(@\exposidnc{get-base-value}@(V) > 0)
@@ -1563,6 +1645,28 @@ constexpr @\libconcept{Magnitude}@ auto @\libglobal{mag_power}@ = @\exposidnc{po
 \pnum
 Subclause \ref{qty.unit} specifies the components
 for defining a unit of measurement\irefiev{112-01-14}.
+
+\rSec2[qty.unit.traits]{Traits}
+
+\begin{itemdecl}
+template<@\libconcept{Unit}@ auto U>
+constexpr bool @\libglobal{space_before_unit_symbol}@ = true;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+The formatting functions\iref{qty.unit.sym.fmt} use \tcode{space_before_unit_symbol}
+to determine whether there is a space
+between the numerical value and the unit symbol.
+
+\pnum
+\remarks
+Pursuant to \refcpp{namespace.std}\iref{spec.ext},
+users may specialize \tcode{space_before_unit_symbol}
+for cv-unqualified program-defined types.
+Such specializations shall be usable in constant expressions\irefcpp{expr.const}
+and have type \tcode{const bool}.
+\end{itemdescr}
 
 \rSec2[qty.unit.concepts]{Concepts}
 
@@ -1703,7 +1807,7 @@ struct @\exposidnc{unit-interface}@ {
   template<@\libconcept{Magnitude}@ M, @\libconcept{Unit}@ U>
   friend consteval @\libconcept{Unit}@ auto operator*(M, U u)
   {
-    if constexpr (std::is_same_v<M, std::remove_const_t<decltype(mag<1>)>>)
+    if constexpr (^const M == ^decltype(mag<1>))
       return u;
     else
       return scaled_unit<M{}, U>{};
@@ -1781,7 +1885,7 @@ namespace mp_units {
 
 template<symbol_text Symbol, @\exposconceptnc{QuantityKindSpec}@ auto QS>
   requires(!Symbol.empty()) && @\exposconceptnc{BaseDimension}@<std::remove_const_t<decltype(QS.dimension)>>
-struct named_unit<Symbol, QS> : @\exposidnc{unit-interface}@ {
+struct @\libglobal{named_unit}@<Symbol, QS> : @\exposidnc{unit-interface}@ {
   using @\exposidnc{base-type}@ = named_unit;
   static constexpr auto symbol = Symbol;
   static constexpr auto quantity_spec = QS;
@@ -1882,12 +1986,12 @@ inline constexpr struct second final : named_unit<"s", kind_of<time>> {
 
 // The third and fourth signatures give a name to the unit argument.
 inline constexpr struct minute final : named_unit<"min", mag<60> * second> {
-} minute;  // $\unit{min} = 60 \unit{s}$.
+} minute;  // $\txtrm{min} = 60 \txtrm{ s}$.
 
 // The fourth signature also restricts the unit to a kind of quantity.
 inline constexpr struct hertz final : named_unit<"Hz", inverse(second), kind_of<frequency>> {
-} hertz;  // $\unit{Hz}$ can't measure becquerel, activity,
-          // or any other quantity with dimension $\unit{T}^{-1}$
+} hertz;  // $\txtrm{Hz}$ can't measure becquerel, activity,
+          // or any other quantity with dimension $\txtrm{T}^{-1}$
           // that isn't a kind of frequency.
 \end{codeblock}
 \end{example}
@@ -1937,11 +2041,11 @@ struct @\libglobal{common_unit}@ final : decltype(@\exposidnc{get-common-scaled-
 
 \pnum
 \tcode{common_unit} is used by the library
-to encapsulate a common conversion factor between units\irefiev{112-01-33}
-of the operands to the addition of quantities.
+to encapsulate a conversion factor between units\irefiev{112-01-33}
+common to the operands of quantity addition.
 \begin{example}
 The result of \tcode{1 * km + 1 * mi}
-has a common unit $[8/125] \unit{m}$
+has a common unit $[8/125] \txtrm{ m}$
 encapsulated by \tcode{common_unit<mi, km>}.
 \end{example}
 
@@ -1968,12 +2072,8 @@ TBD.
 \begin{codeblock}
 namespace mp_units {
 
-consteval bool @\exposidnc{is-one}@(std::meta::info type_alias) {
-  return dealias(type_alias) == ^one;
-}
-
 template<@\exposconceptnc{DerivedUnitExpr}@... Expr>
-struct @\libglobal{derived_unit}@ : @\exposidnc{unit-interface}@, @\exposidnc{expr-fractions}@<@\exposidnc{is-one}@, Expr...> {
+struct @\libglobal{derived_unit}@ : @\exposidnc{unit-interface}@, @\exposidnc{expr-fractions}@<struct one, Expr...> {
   using @\exposidnc{base-type}@ = derived_unit;  // \expos
 };
 
@@ -1990,6 +2090,130 @@ static_assert(^decltype(metre * second) == ^derived_unit<metre, second>);
 static_assert(^decltype(metre / second) == ^derived_unit<metre, per<second>>);
 \end{codeblock}
 \end{example}
+
+\begin{codeblock}
+namespace mp_units {
+
+inline constexpr struct @\libglobal{one}@ final : derived_unit<> {} @\libglobal{one}@;
+
+}
+\end{codeblock}
+
+\pnum
+\tcode{one} represents the base unit\irefiev{112-01-18} of a quantity of dimension one\irefiev{112-01-13}.
+
+\begin{itemdecl}
+template<std::intmax_t Num, std::intmax_t Den = 1, @\libconcept{Unit}@ U>
+  requires(Den != 0)
+consteval @\libconcept{Unit}@ auto @\liboverload{pow}{\cname{Unit}}@(U u);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+\tcode{\exposidnc{expr-pow}<Num, Den, derived_unit, struct one>(u)}.
+\end{itemdescr}
+
+\begin{itemdecl}
+consteval @\libconcept{Unit}@ auto @\libglobal{get_common_unit}@(@\libconcept{Unit}@ auto... us)
+  requires @\seebelownc@;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+Let
+\begin{itemize}
+\item
+\tcode{u1} be \tcode{us...[0]},
+\item
+\tcode{u2} be \tcode{us...[1]},
+\item
+\tcode{U1} be \tcode{decltype(u1)},
+\item
+\tcode{U2} be \tcode{decltype(u2)}, and
+\item
+\tcode{rest} be a pack denoting the elements of \tcode{us} without \tcode{u1} and \tcode{u2}.
+\end{itemize}
+
+\pnum
+The expression in the \fakegrammarterm{requires-clause} is equivalent to:
+\begin{codeblock}
+(sizeof...(us) != 0 && (sizeof...(us) == 1 ||  //
+                        (sizeof...(us) == 2 && convertible(U1{}, U2{})) ||
+                        requires { get_common_unit(get_common_unit(u1, u2), rest...); }))
+\end{codeblock}
+
+\pnum
+\effects
+Equivalent to:
+\begin{codeblock}
+if constexpr (sizeof...(us) == 1)
+  return u1;
+else if constexpr (sizeof...(us) == 2) {
+  if constexpr (@\exposidnc{is-convertible-to-base-subobject-of}@(^U1, ^common_unit)) {
+    return @\textit{TBD.}@;
+  } else if constexpr (@\exposidnc{is-convertible-to-base-subobject-of}@(^U2, ^common_unit))
+    return get_common_unit(u2, u1);
+  else if constexpr (^U1 == ^U2)
+    return u1;
+  else if constexpr (equivalent(u1, u2)) {
+    if constexpr (std::@\stdconcept{derived_from}@<U1, typename U2::@\exposidnc{base-type}@>)
+      return u1;
+    else if constexpr (std::@\stdconcept{derived_from}@<U2, typename U1::@\exposidnc{base-type}@>)
+      return u2;
+    else
+      return [:@\exposidnc{type-less}@<U1, U2>{} ? ^u1 : ^u2:];
+  } else {
+    constexpr auto canonical_lhs = @\exposidnc{get-canonical-unit}@(u1);
+    constexpr auto canonical_rhs = @\exposidnc{get-canonical-unit}@(u2);
+
+    if constexpr (@\exposidnc{is-positive-integral-power}@(canonical_lhs.mag / canonical_rhs.mag))
+      return u2;
+    else if constexpr (@\exposidnc{is-positive-integral-power}@(canonical_rhs.mag / canonical_lhs.mag))
+      return u1;
+    else {
+      if constexpr (@\exposidnc{type-less}@<U1, U2>{})
+        return common_unit<U1, U2>{};
+      else
+        return common_unit<U2, U1>{};
+    }
+  }
+} else
+  return get_common_unit(get_common_unit(u1, u2), rest...);
+\end{codeblock}
+\end{itemdescr}
+
+\rSec2[qty.unit.sym.fmt]{Symbol formatting}
+
+\begin{itemdecl}
+template<typename CharT = char, std::@\stdconcept{output_iterator}@<CharT> Out, @\libconcept{Unit}@ U>
+constexpr Out @\libglobal{unit_symbol_to}@(Out out, U u,
+                             const unit_symbol_formatting& fmt = unit_symbol_formatting{});
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+TBD.
+
+\pnum
+\returns
+TBD.
+\end{itemdescr}
+
+\begin{itemdecl}
+template<unit_symbol_formatting fmt = {}, typename CharT = char, @\libconcept{Unit}@ U>
+constexpr auto @\libglobal{unit_symbol}@(U);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+Equivalent to:
+\begin{codeblock}
+TBD.
+\end{codeblock}
+\end{itemdescr}
 
 \rSec1[qty.ref]{Reference}
 
