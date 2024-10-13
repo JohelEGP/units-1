@@ -482,8 +482,25 @@ struct @\exposidnc{expr-fractions}@ {
 
 \pnum
 \exposidnc{expr-fractions} divides an expression template to numerator and denominator parts.
-\exposidnc{num} is TBD.
-\exposidnc{den} is TBD.
+Unless otherwise specified, let \exposidnc{num} and \exposidnc{den} be \tcode{\exposidnc{type-list}<>}.
+\begin{itemize}
+\item
+If \tcode{sizeof...(Ts) == 1} is \tcode{true}, then \exposidnc{num} is \tcode{\exposidnc{type-list}<Ts...>}.
+\item
+If \tcode{sizeof...(Ts) >= 2} is \tcode{true}, then:
+\begin{itemize}
+\item
+If the last element of \tcode{Ts} does not match \tcode{per<Us...>},
+then \exposidnc{num} is \tcode{\exposidnc{type-list}<Ts...>}.
+\item
+Otherwise, \exposidnc{den} is \tcode{\exposidnc{type-list}<Us...>}, and if
+\begin{codeblock}
+sizeof...(Ts) != 2 || ^Ts...[0] != ^OneType
+\end{codeblock}
+is \tcode{true}, then
+\exposidnc{num} is \tcode{\exposidnc{type-list}<Ts...[0], Ts...[1], \ldots, Ts...[sizeof...(Ts) - 2]>}.
+\end{itemize}
+\end{itemize}
 
 \begin{itemdecl}
 template<template<typename...> typename To, typename OneType,
@@ -496,12 +513,14 @@ consteval auto @\exposidnc{expr-multiply}@(Lhs, Rhs);
 \exposidnc{expr-multiply} multiplies two sorted expression templates.
 
 \pnum
-\effects
-TBD.
-
-\pnum
 \returns
+\begin{itemize}
+\item
+If an argument is \tcode{OneType}, returns the other argument.
+\item
+Otherwise,
 TBD.
+\end{itemize}
 \end{itemdescr}
 
 \begin{itemdecl}
@@ -513,10 +532,6 @@ consteval auto @\exposidnc{expr-divide}@(Lhs lhs, Rhs rhs);
 \begin{itemdescr}
 \pnum
 \exposidnc{expr-divide} divides two sorted expression templates.
-
-\pnum
-\effects
-TBD.
 
 \pnum
 \returns
@@ -533,10 +548,6 @@ consteval auto @\exposidnc{expr-invert}@(T);
 \exposidnc{expr-invert} inverts the expression template \tcode{T}.
 
 \pnum
-\effects
-TBD.
-
-\pnum
 \returns
 TBD.
 \end{itemdescr}
@@ -551,10 +562,6 @@ consteval auto @\exposidnc{expr-pow}@(T);
 \begin{itemdescr}
 \pnum
 \exposidnc{expr-pow} computes the power\irefiev{102-02-08} $\tcode{T}^{\tcode{Num}/\tcode{Den}}$.
-
-\pnum
-\effects
-TBD.
 
 \pnum
 \returns
@@ -574,10 +581,6 @@ consteval auto @\exposidnc{expr-map}@(T);
 \pnum
 Let \tcode{Proj} be projection used for mapping, and
 let \tcode{T} be the expression template to map from.
-
-\pnum
-\effects
-TBD.
 
 \pnum
 \returns
