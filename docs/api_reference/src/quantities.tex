@@ -51,9 +51,6 @@ enum class @\libglobal{quantity_character}@ { @\libmember{scalar}{quantity_chara
 
 // \ref{qty.expr.temp.types}, types
 
-template<typename... Ts>
-struct type_list;
-
 template<typename T, typename... Ts>
 struct per;
 
@@ -106,9 +103,6 @@ constexpr auto dimension_symbol(D);
 
 template<typename T>
 concept QuantitySpec = @\seebelownc@;
-
-template<QuantitySpec Q>
-consteval @\seebelownc@ get_kind(Q q);
 
 template<typename T, auto QS>
 concept QuantitySpecOf = @\seebelownc@;
@@ -164,7 +158,7 @@ consteval bool castable(@\libconcept{QuantitySpec}@ auto from, @\libconcept{Quan
 consteval bool interconvertible(@\libconcept{QuantitySpec}@ auto qs1, @\libconcept{QuantitySpec}@ auto qs2);
 
 template<@\libconcept{QuantitySpec}@ Q>
-consteval @\exposconceptnc{QuantityKindSpec}@ auto get_kind(Q q);
+consteval @\seebelownc@ get_kind(Q q);
 
 consteval @\libconcept{QuantitySpec}@ auto get_common_quantity_spec(@\libconcept{QuantitySpec}@ auto... qs)
   requires @\seebelownc@;
@@ -420,18 +414,6 @@ static_assert(^decltype(km / square(h)) ==
 \begin{codeblock}
 namespace mp_units {
 
-template<typename... Ts>
-struct @\libglobal{type_list}@ {};
-
-}
-\end{codeblock}
-
-\pnum
-\tcode{type_list} encapsulates a list of types.
-
-\begin{codeblock}
-namespace mp_units {
-
 template<typename T, typename... Ts>
 struct @\libglobal{per}@ {};
 
@@ -488,6 +470,9 @@ struct @\exposidnc{type-less}@ :
 \end{codeblock}
 
 \begin{codeblock}
+template<typename... Ts>
+struct @\exposidnc{type-list}@ {};
+
 template<typename OneType, typename... Ts>
 struct @\exposidnc{expr-fractions}@ {
   using @\exposidnc{num}@ = @\seebelownc@;
@@ -636,11 +621,8 @@ template<typename T>
 concept @\defexposconceptnc{DerivedDimensionExpr}@ =
   @\exposconceptnc{BaseDimension}@<T> || @\exposidnc{is-dimension-one}@(^T) || @\exposconceptnc{IsPowerOfDim}@<T> || @\exposidnc{is-per-of-dims}@<T>;
 
-template<auto D1, auto D2>
-concept @\defexposconceptnc{SameDimension}@ = @\libconcept{Dimension}@<decltype(D1)> && @\libconcept{Dimension}@<decltype(D2)> && D1 == D2;
-
 template<typename T, auto D>
-concept @\deflibconcept{DimensionOf}@ = @\libconcept{Dimension}@<T> && @\libconcept{Dimension}@<decltype(D)> && @\exposconceptnc{SameDimension}@<T{}, D>;
+concept @\deflibconcept{DimensionOf}@ = @\libconcept{Dimension}@<T> && @\libconcept{Dimension}@<decltype(D)> && T{} == D;
 \end{itemdecl}
 
 \rSec2[qty.dim.types]{Types}
@@ -697,6 +679,10 @@ struct @\libglobal{derived_dimension}@ final : @\exposidnc{dimension-interface}@
 \pnum
 \tcode{derived_dimension} is used by the library
 to represent the dimension of a derived quantity\irefiev{112-01-10}.
+\begin{note}
+A program never needs to name this template.
+The name is not \expos{} for the portability of its name where observable.
+\end{note}
 \begin{example}
 \begin{codeblock}
 constexpr auto acceleration = isq::dim_speed / isq::dim_time;
@@ -704,14 +690,6 @@ static_assert(dealias(^decltype(acceleration)) ==
               ^derived_dimension<isq::dim_length, per<power<isq::dim_time, 2>>>);
 \end{codeblock}
 \end{example}
-
-\pnum
-\mandates
-\tcode{Expr...} is simplified\iref{qty.expr.temp.algo}.
-\begin{note}
-The library handles the representation of a derived dimension.
-The name is not \expos{} for the portability and readability of the specializations.
-\end{note}
 
 \begin{codeblock}
 namespace mp_units {
@@ -733,20 +711,8 @@ consteval @\libconcept{Dimension}@ auto @\liboverload{pow}{\cname{Dimension}}@(D
 
 \begin{itemdescr}
 \pnum
-Computes $\tcode{d}^{\tcode{Num}/\tcode{Den}}$.
-
-\pnum
-\effects
-Equivalent to:
-\begin{codeblock}
-if constexpr (@\exposconceptnc{BaseDimension}@<D>) {
-  if constexpr (Den == 1)
-    return derived_dimension<power<D, Num>>{};
-  else
-    return derived_dimension<power<D, Num, Den>>{};
-} else
-  return @\exposidnc{expr-pow}@<Num, Den, derived_dimension, struct dimension_one>(d);
-\end{codeblock}
+\returns
+\tcode{\exposidnc{expr-pow}<Num, Den, derived_dimension, struct dimension_one>(d)}.
 \end{itemdescr}
 
 \begin{itemdecl}
@@ -879,7 +845,7 @@ consteval quantity_character @\exposidnc{common-quantity-character}@(
 }
 
 template<typename... Qs1, typename... Qs2>
-consteval quantity_character @\exposidnc{derived-quantity-character}@(type_list<Qs1...>, type_list<Qs2...>)
+consteval quantity_character @\exposidnc{derived-quantity-character}@(@\exposidnc{type-list}@<Qs1...>, @\exposidnc{type-list}@<Qs2...>)
 {
   constexpr quantity_character num =
     @\exposidnc{common-quantity-character}@({quantity_character::scalar, [:@\exposidnc{expr-type}@(^Qs1):]::character...});
@@ -1155,24 +1121,10 @@ consteval @\libconcept{QuantitySpec}@ auto @\liboverload{pow}{\cname{QuantitySpe
 
 \begin{itemdescr}
 \pnum
-Computes $\tcode{q}^{\tcode{Num}/\tcode{Den}}$.
-
-\pnum
-\effects
-Equivalent to:
+\returns
 \begin{codeblock}
-if constexpr (Num == 0 || q == dimensionless)
-  return dimensionless;
-else if constexpr (@\exposidnc{ratio}@{Num, Den} == 1)
-  return q;
-else if constexpr (@\exposconceptnc{DerivedQuantitySpec}@<Q>)
-  return @\exposidnc{clone-kind-of}@<q>(
-    @\exposidnc{expr-pow}@<Num, Den, derived_quantity_spec, struct dimensionless>(@\exposidnc{remove-kind}@(q)));
-else if constexpr (Den == 1)
-  return @\exposidnc{clone-kind-of}@<q>(derived_quantity_spec<power<decltype(@\exposidnc{remove-kind}@(q)), Num>>{});
-else
-  return @\exposidnc{clone-kind-of}@<q>(
-    derived_quantity_spec<power<decltype(@\exposidnc{remove-kind}@(q)), Num, Den>>{});
+@\exposidnc{clone-kind-of}@<q>(
+  @\exposidnc{expr-pow}@<Num, Den, derived_quantity_spec, struct dimensionless>(@\exposidnc{remove-kind}@(q)));
 \end{codeblock}
 \end{itemdescr}
 
@@ -1329,54 +1281,37 @@ else if constexpr (sizeof...(qs) == 2) {
 \end{itemdescr}
 
 \pnum
-Let \tcode{Q} be a specialization of \tcode{quantity_spec} with a \exposidnc{parent} member.
-
-% Untested algorithm.
-\begin{codeblock}
-namespace mp_units {
-
-consteval std::vector<std::meta::info> @\exposidnc{quantity-spec-hierarchy}@(std::meta::info q)
-{
-  auto get_parent = [](std::meta::info q) -> std::optional<std::meta::info> {
-    auto mems = members_of(q);
-    auto it = std::ranges::find_if(mems, [parent_id = identifier_of(^Q::@\exposidnc{parent}@)](auto m) {
-      return has_identifier(m) && identifier_of(m) == parent_id;
-    });
-    if (it != args.end()) return *it;
-    return std::nullopt;
-  };
-  std::vector<std::meta::info> res{q};
-  std::optional<std::meta::info> parent;
-  while (parent = get_parent(res.back())) {
-    res.push_back(*parent);
-  }
-  return res;
-}
-
-}
-\end{codeblock}
+Let the quantity kind hierarchy of \tcode{q} be the tuple
+$H(\tcode{q}) = ( \tcode{q}, \tcode{q.\exposidnc{parent}}, \tcode{q.\exposidnc{parent}.\exposidnc{parent}}, \ldots )$.
 
 \begin{itemdecl}
-template<@\libconcept{QuantitySpec}@ A, @\libconcept{QuantitySpec}@ B>
-consteval std::optional<std::meta::info> @\exposidnc{get-common-base}@(A a, B b);
+consteval std::optional<std::meta::info> @\exposidnc{get-common-base}@(@\libconcept{QuantitySpec}@ auto a,
+                                                         @\libconcept{QuantitySpec}@ auto b);
 \end{itemdecl}
 
 \begin{itemdescr}
 \pnum
+Let
+\begin{itemize}
+\item
+$a_s$ be the number of elements in $H(\tcode{a})$,
+\item
+$b_s$ be the number of elements in $H(\tcode{b})$,
+\item
+$s$ be $\operatorname{min}(a_s, b_s)$,
+\item
+$A$ be a tuple of the last $s$ elements of $H(\tcode{a})$, and
+\item
+$B$ be a tuple of the last $s$ elements of $H(\tcode{b})$.
+\end{itemize}
+
+\pnum
 \effects
-Equivalent to: % Untested algorithm.
-\begin{codeblock}
-auto hier_a = @\exposidnc{quantity-spec-hierarchy}@(^a);
-auto hier_b = @\exposidnc{quantity-spec-hierarchy}@(^b);
-auto max_valid_depth = std::min(hier_a.size(), hier_b.size());
-auto res =
-  std::ranges::mismatch(std::span{hier_a}.last(max_valid_depth),
-                        std::span{hier_b}.last(max_valid_depth), std::not_equal_to);
-if (to_address(res.in1) != to_address(hier_a.end())) {
-  return *res.in1;
-}
-return std::nullopt;
-\end{codeblock}
+Looks for $x$, the first pair-wise equal element in $A$ and $B$.
+
+\pnum
+\returns
+A reflection of $x$, if found, and \tcode{std::nullopt} otherwise.
 \end{itemdescr}
 
 \begin{itemdecl}
@@ -1386,20 +1321,11 @@ consteval bool @\exposidnc{is-child-of}@(Child ch, Parent p);
 
 \begin{itemdescr}
 \pnum
-\effects
-Equivalent to: % Untested algorithm.
-\begin{codeblock}
-if constexpr (Child{} == Parent{})
-  return true;
-else {
-  auto hier_ch = @\exposidnc{quantity-spec-hierarchy}@(^ch);
-  auto hier_p = @\exposidnc{quantity-spec-hierarchy}@(^p);
-  if (hier_p.size() > hier_ch.size())
-    return false;
-  else
-    return std::span{hier_ch}.last(hier_p.size())[0] == ^p;
-}
-\end{codeblock}
+\returns
+If $H(\tcode{p})$ has more elements than $H(\tcode{ch})$, returns \tcode{false}.
+Otherwise, let $C$ be a tuple of the last $s$ elements of $H(\tcode{ch})$,
+where $s$ is the number of elements in $H(\tcode{p})$.
+Returns \tcode{$C_0$ == p}.
 \end{itemdescr}
 
 \rSec1[qty.mag]{Magnitude}
