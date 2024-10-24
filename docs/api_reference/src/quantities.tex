@@ -227,7 +227,7 @@ concept UnitOf = @\seebelownc@;
 // \ref{qty.unit.types}, types
 
 template<@\libconcept{Unit}@ From, @\libconcept{Unit}@ To>
-consteval bool convertible(From from, To to);
+consteval bool @\liboverload{convertible}{\cname{Unit}}@(From from, To to);
 
 template<@\libconcept{Magnitude}@ auto M, @\libconcept{Unit}@ U>
   requires @\seebelownc@
@@ -302,6 +302,9 @@ inline constexpr struct @\libglobal{parts_per_million}@ final :
 
 inline constexpr auto @\libglobal{ppm}@ = parts_per_million;
 
+consteval @\libconcept{QuantitySpec}@ auto get_quantity_spec(@\libconcept{AssociatedUnit}@ auto u);
+consteval @\libconcept{Unit}@ auto @\liboverload{get_unit}{\cname{AssociatedUnit}}@(@\libconcept{AssociatedUnit}@ auto u) { return u; }
+
 consteval @\libconcept{Unit}@ auto get_common_unit(@\libconcept{Unit}@ auto... us)
   requires @\seebelownc@;
 
@@ -334,6 +337,68 @@ template<unit_symbol_formatting fmt = {}, typename CharT = char, @\libconcept{Un
 constexpr auto unit_symbol(U);
 
 // \ref{qty.ref}, reference
+
+template<typename T>
+concept @\deflibconcept{Reference}@ = @\seebelownc@;
+
+template<typename T, auto QS>
+concept @\deflibconcept{ReferenceOf}@ = @\seebelownc@;
+
+template<@\libconcept{QuantitySpec}@ Q, @\libconcept{Unit}@ U>
+struct reference;
+
+template<typename Q, typename U>
+consteval @\libconcept{QuantitySpec}@ auto @\liboverload{get_quantity_spec}{reference}@(reference<Q, U>)
+{
+  return Q{};
+}
+
+template<typename Q, typename U>
+consteval @\libconcept{Unit}@ auto @\liboverload{get_unit}{reference}@(reference<Q, U>)
+{
+  return U{};
+}
+
+template<typename FwdRep, @\libconcept{Reference}@ R,
+         @\libconcept{RepresentationOf}@<get_quantity_spec(R{}).character> Rep = std::remove_cvref_t<FwdRep>>
+  requires(!@\exposconceptnc{OffsetUnit}@<decltype(get_unit(R{}))>)
+constexpr quantity<R{}, Rep> operator*(FwdRep&& lhs, R r);
+
+template<typename FwdRep, @\libconcept{Reference}@ R,
+         @\libconcept{RepresentationOf}@<get_quantity_spec(R{}).character> Rep = std::remove_cvref_t<FwdRep>>
+  requires(!@\exposconceptnc{OffsetUnit}@<decltype(get_unit(R{}))>)
+constexpr quantity<inverse(R{}), Rep> operator/(FwdRep&& lhs, R);
+
+template<typename FwdQ, @\libconcept{Reference}@ R, @\libconcept{Quantity}@ Q = std::remove_cvref_t<FwdQ>>
+constexpr @\libconcept{Quantity}@ auto operator*(FwdQ&& q, R);
+
+template<typename FwdQ, @\libconcept{Reference}@ R, @\libconcept{Quantity}@ Q = std::remove_cvref_t<FwdQ>>
+constexpr @\libconcept{Quantity}@ auto operator/(FwdQ&& q, R);
+
+template<@\libconcept{Reference}@ R, typename Rep>
+  requires @\libconcept{RepresentationOf}@<std::remove_cvref_t<Rep>, get_quantity_spec(R{}).character>
+constexpr auto operator*(R, Rep&&) = delete;
+
+template<@\libconcept{Reference}@ R, typename Rep>
+  requires @\libconcept{RepresentationOf}@<std::remove_cvref_t<Rep>, get_quantity_spec(R{}).character>
+constexpr auto operator/(R, Rep&&) = delete;
+
+template<@\libconcept{Reference}@ R, typename Q>
+  requires @\libconcept{Quantity}@<std::remove_cvref_t<Q>>
+constexpr auto operator*(R, Q&&) = delete;
+
+template<@\libconcept{Reference}@ R, typename Q>
+  requires @\libconcept{Quantity}@<std::remove_cvref_t<Q>>
+constexpr auto operator/(R, Q&&) = delete;
+
+consteval @\libconcept{AssociatedUnit}@ auto get_common_reference(@\libconcept{AssociatedUnit}@ auto u1,
+                                                   @\libconcept{AssociatedUnit}@ auto u2,
+                                                   @\libconcept{AssociatedUnit}@ auto... rest)
+  requires @\seebelownc@;
+
+template<@\libconcept{Reference}@ R1, @\libconcept{Reference}@ R2, @\libconcept{Reference}@... Rest>
+consteval @\libconcept{Reference}@ auto get_common_reference(R1 r1, R2 r2, Rest... rest)
+  requires @\seebelownc@;
 
 // \ref{qty.rep}, representation
 
@@ -1415,8 +1480,8 @@ Equivalent to:
 if constexpr (sizeof...(qs) == 1)
   return q1;
 else if constexpr (sizeof...(qs) == 2) {
-  using QQ1 = decltype(remove_kind(q1));
-  using QQ2 = decltype(remove_kind(q2));
+  using QQ1 = decltype(@\exposidnc{remove-kind}@(q1));
+  using QQ2 = decltype(@\exposidnc{remove-kind}@(q2));
 
   if constexpr (^Q1 == ^Q2)
     return q1;
@@ -2115,6 +2180,16 @@ consteval @\libconcept{Unit}@ auto @\liboverload{pow}{\cname{Unit}}@(U u);
 \end{itemdescr}
 
 \begin{itemdecl}
+consteval @\libconcept{QuantitySpec}@ auto @\liboverload{get_quantity_spec}{\cname{AssociatedUnit}}@(@\libconcept{AssociatedUnit}@ auto u);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\returns
+TBD.
+\end{itemdescr}
+
+\begin{itemdecl}
 consteval @\libconcept{Unit}@ auto @\libglobal{get_common_unit}@(@\libconcept{Unit}@ auto... us)
   requires @\seebelownc@;
 \end{itemdecl}
@@ -2220,7 +2295,240 @@ TBD.
 \begin{itemdecl}
 template<typename T>
 concept @\deflibconcept{Reference}@ = @\libconcept{AssociatedUnit}@<T> || @\exposidnc{is-specialization-of}@(^T, ^reference);
+
+template<typename T, auto QS>
+concept @\deflibconcept{ReferenceOf}@ = @\libconcept{Reference}@<T> && @\libconcept{QuantitySpecOf}@<decltype(get_quantity_spec(T{})), QS>;
 \end{itemdecl}
+
+\begin{codeblock}
+namespace mp_units {
+
+template<@\libconcept{QuantitySpec}@ auto Q, @\libconcept{Unit}@ auto U>
+using @\exposidnc{reference-t}@ = reference<decltype(Q), decltype(U)>;
+
+template<@\libconcept{QuantitySpec}@ Q, @\libconcept{Unit}@ U>
+struct @\libglobal{reference}@ {
+  template<typename Q2, typename U2>
+  friend consteval bool operator==(reference, reference<Q2, U2>)
+  {
+    return Q{} == Q2{}&& U{} == U2{};
+  }
+
+  template<@\libconcept{AssociatedUnit}@ U2>
+  friend consteval bool operator==(reference, U2 u2)
+  {
+    return Q{} == get_quantity_spec(u2)&& U{} == u2;
+  }
+
+  template<typename Q2, typename U2>
+  friend consteval auto operator*(reference, reference<Q2, U2>)
+    -> @\exposidnc{reference-t}@<Q{}* Q2{}, U{}* U2{}>
+  {
+    return {};
+  }
+
+  template<@\libconcept{AssociatedUnit}@ U2>
+  friend consteval auto operator*(reference, U2)
+    -> @\exposidnc{reference-t}@<Q{} * get_quantity_spec(U2{}), U{}* U2{}>
+  {
+    return {};
+  }
+
+  template<@\libconcept{AssociatedUnit}@ U1>
+  friend consteval auto operator*(U1, reference)
+    -> @\exposidnc{reference-t}@<get_quantity_spec(U1{}) * Q{}, U1{}* U{}>
+  {
+    return {};
+  }
+
+  template<typename Q2, typename U2>
+  friend consteval auto operator/(reference, reference<Q2, U2>)
+    -> @\exposidnc{reference-t}@<Q{} / Q2{}, U{} / U2{}>
+  {
+    return {};
+  }
+
+  template<@\libconcept{AssociatedUnit}@ U2>
+  friend consteval auto operator/(reference, U2)
+    -> @\exposidnc{reference-t}@<Q{} / get_quantity_spec(U2{}), U{} / U2{}>
+  {
+    return {};
+  }
+
+  template<@\libconcept{AssociatedUnit}@ U1>
+  friend consteval auto operator/(U1, reference)
+    -> @\exposidnc{reference-t}@<get_quantity_spec(U1{}) / Q{}, U1{} / U{}>
+  {
+    return {};
+  }
+
+  friend consteval auto @\liboverload{inverse}{reference}@(reference) { return @\exposidnc{reference-t}@<inverse(Q{}), inverse(U{})>{}; }
+
+  template<std::intmax_t Num, std::intmax_t Den = 1>
+    requires(Den != 0)
+  friend consteval auto @\liboverload{pow}{reference}@(reference)
+  {
+    return @\exposidnc{reference-t}@<pow<Num, Den>(Q{}), pow<Num, Den>(U{})>{};
+  }
+
+  friend consteval auto @\liboverload{sqrt}{reference}@(reference) { return @\exposidnc{reference-t}@<sqrt(Q{}), sqrt(U{})>{}; }
+  friend consteval auto @\liboverload{cbrt}{reference}@(reference) { return @\exposidnc{reference-t}@<cbrt(Q{}), cbrt(U{})>{}; }
+
+  template<typename Q2, typename U2>
+  friend consteval bool @\liboverload{convertible}{reference}@(reference, reference<Q2, U2>)
+  {
+    return implicitly_convertible(Q{}, Q2{}) && convertible(U{}, U2{});
+  }
+
+  template<@\libconcept{AssociatedUnit}@ U2>
+  friend consteval bool convertible(reference, U2 u2)
+  {
+    return implicitly_convertible(Q{}, get_quantity_spec(u2)) && convertible(U{}, u2);
+  }
+
+  template<@\libconcept{AssociatedUnit}@ U1>
+  friend consteval bool convertible(U1 u1, reference)
+  {
+    return implicitly_convertible(get_quantity_spec(u1), Q{}) && convertible(u1, U{});
+  }
+};
+
+}
+\end{codeblock}
+
+\pnum
+\tcode{reference<Q, U>} represents the reference of a quantity\irefiev{112-01-01}.
+The reference is the unit of measurement \tcode{U}\irefiev{112-01-14}
+used to measure a value of the quantity \tcode{Q}\irefiev{112-01-28}.
+
+\begin{itemdecl}
+template<typename FwdRep, @\libconcept{Reference}@ R,
+         @\libconcept{RepresentationOf}@<get_quantity_spec(R{}).character> Rep = std::remove_cvref_t<FwdRep>>
+  requires(!@\exposconceptnc{OffsetUnit}@<decltype(get_unit(R{}))>)
+constexpr quantity<R{}, Rep> @\libmember{operator*}{reference}@(FwdRep&& lhs, R r);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+Equivalent to:
+\tcode{return quantity{std::forward<FwdRep>(lhs), r};}
+\end{itemdescr}
+
+\begin{itemdecl}
+template<typename FwdRep, @\libconcept{Reference}@ R,
+         @\libconcept{RepresentationOf}@<get_quantity_spec(R{}).character> Rep = std::remove_cvref_t<FwdRep>>
+  requires(!@\exposconceptnc{OffsetUnit}@<decltype(get_unit(R{}))>)
+constexpr quantity<inverse(R{}), Rep> @\libmember{operator/}{reference}@(FwdRep&& lhs, R);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+Equivalent to:
+\tcode{return quantity{std::forward<FwdRep>(lhs), inverse(R{})};}
+\end{itemdescr}
+
+\begin{itemdecl}
+template<typename FwdQ, @\libconcept{Reference}@ R, @\libconcept{Quantity}@ Q = std::remove_cvref_t<FwdQ>>
+constexpr @\libconcept{Quantity}@ auto @\libmember{operator*}{reference}@(FwdQ&& q, R);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+Equivalent to:
+\begin{codeblock}
+return quantity{std::forward<FwdQ>(q).@\exposidnc{numerical-value}@, Q::reference* R{}};
+\end{codeblock}
+\end{itemdescr}
+
+\begin{itemdecl}
+template<typename FwdQ, @\libconcept{Reference}@ R, @\libconcept{Quantity}@ Q = std::remove_cvref_t<FwdQ>>
+constexpr @\libconcept{Quantity}@ auto @\libmember{operator/}{reference}@(FwdQ&& q, R);
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\effects
+Equivalent to:
+\begin{codeblock}
+return quantity{std::forward<FwdQ>(q).@\exposidnc{numerical-value}@, Q::reference / R{}};
+\end{codeblock}
+\end{itemdescr}
+
+\begin{itemdecl}
+template<@\libconcept{Reference}@ R, typename Rep>
+  requires @\libconcept{RepresentationOf}@<std::remove_cvref_t<Rep>, get_quantity_spec(R{}).character>
+constexpr auto operator*(R, Rep&&) = delete;
+
+template<@\libconcept{Reference}@ R, typename Rep>
+  requires @\libconcept{RepresentationOf}@<std::remove_cvref_t<Rep>, get_quantity_spec(R{}).character>
+constexpr auto operator/(R, Rep&&) = delete;
+
+template<@\libconcept{Reference}@ R, typename Q>
+  requires @\libconcept{Quantity}@<std::remove_cvref_t<Q>>
+constexpr auto operator*(R, Q&&) = delete;
+
+template<@\libconcept{Reference}@ R, typename Q>
+  requires @\libconcept{Quantity}@<std::remove_cvref_t<Q>>
+constexpr auto operator/(R, Q&&) = delete;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+\recommended
+Suggest swapping the operands.
+\end{itemdescr}
+
+\begin{itemdecl}
+consteval @\libconcept{AssociatedUnit}@ auto @\libglobal{get_common_reference}@(@\libconcept{AssociatedUnit}@ auto u1,
+                                                   @\libconcept{AssociatedUnit}@ auto u2,
+                                                   @\libconcept{AssociatedUnit}@ auto... rest)
+  requires @\seebelownc@;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+The expression in the \fakegrammarterm{requires-clause} is equivalent to:
+\begin{codeblock}
+requires {
+  get_common_quantity_spec(get_quantity_spec(u1), get_quantity_spec(u2),
+                           get_quantity_spec(rest)...);
+  { get_common_unit(u1, u2, rest...) } -> AssociatedUnit;
+}
+\end{codeblock}
+
+\pnum
+\returns
+\tcode{get_common_unit(u1, u2, rest...)}.
+\end{itemdescr}
+
+\begin{itemdecl}
+template<@\libconcept{Reference}@ R1, @\libconcept{Reference}@ R2, @\libconcept{Reference}@... Rest>
+consteval @\libconcept{Reference}@ auto @\libglobal{get_common_reference}@(R1 r1, R2 r2, Rest... rest)
+  requires @\seebelownc@;
+\end{itemdecl}
+
+\begin{itemdescr}
+\pnum
+The expression in the \fakegrammarterm{requires-clause} is equivalent to:
+\begin{codeblock}
+requires {
+  get_common_quantity_spec(get_quantity_spec(r1), get_quantity_spec(r2),
+                           get_quantity_spec(rest)...);
+  get_common_unit(get_unit(r1), get_unit(r2), get_unit(rest)...);
+}
+\end{codeblock}
+
+\pnum
+\returns
+\begin{codeblock}
+@\exposidnc{reference-t}@<get_common_quantity_spec(get_quantity_spec(R1{}), get_quantity_spec(R2{}),
+                                     get_quantity_spec(rest)...),
+            get_common_unit(get_unit(R1{}), get_unit(R2{}), get_unit(rest)...)>{};
+\end{codeblock}
+\end{itemdescr}
 
 \rSec1[qty.rep]{Representation}
 
